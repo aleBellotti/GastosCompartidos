@@ -126,9 +126,45 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
   </section>
 
   <div class="status" id="status">Guardado en este dispositivo</div>
+  <div class="status">
+    <span id="groupInfo"></span> ·
+    <button class="linkbtn" id="shareBtn" style="font-size:.82rem">Compartir / unirse a grupo</button>
+  </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
+// ---------- Firebase (datos compartidos, cualquier dispositivo/invitado) ----------
+// 1. Crea un proyecto gratis en https://console.firebase.google.com
+// 2. Activa Firestore Database (modo "production", igual las reglas de abajo lo abren solo a quien tenga el código de grupo)
+// 3. Pegá tu config acá:
+const firebaseConfig = {
+  apiKey: "AIzaSyA56BH_NKTbXxlUtzsdOhu5dJh-XvtAg0s",
+  authDomain: "gastoscompartidos-b04ef.firebaseapp.com",
+  projectId: "gastoscompartidos-b04ef",
+};
+// Reglas de Firestore sugeridas (Firestore > Reglas):
+// rules_version = '2';
+// service cloud.firestore {
+//   match /databases/{database}/documents {
+//     match /grupos/{grupoId}/items/{itemId} {
+//       allow read, write: if true; // protegido solo por lo difícil de adivinar el código de grupo
+//     }
+//   }
+// }
+let fsCol = null;
+try{
+  if (firebaseConfig.apiKey !== "TU_API_KEY"){
+    firebase.initializeApp(firebaseConfig);
+  }
+}catch(e){ console.error(e); }
+
+const GK = "gastos-app-group";
+function getGroup(){ return localStorage.getItem(GK) || ""; }
+function setGroup(g){ localStorage.setItem(GK, g); }
+function newGroupId(){ return Math.random().toString(36).slice(2,8) + Math.random().toString(36).slice(2,6); }
+
 const CATS = [
   {id:"comida", name:"Comida", color:"var(--c-comida)"},
   {id:"transporte", name:"Transporte", color:"var(--c-transporte)"},
@@ -275,37 +311,53 @@ loadLocal();
 renderChips();
 render();
 
-// ---------- light up private cloud storage when available ----------
-(async () => {
-  if (!window.claude || !window.claude.use) return;
-  try{
-    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
-    if (!db || !user) return;
-    const id = await user.id();
-    if (!id) return;
-    const col = db.collection("data/users/" + id);
-    let first = true;
-    col.onSnapshot(snap => {
-      const remote = []; let b = 0;
-      snap.docs.forEach(d => { const x = d.data(); if (!x) return;
-        if (x.kind === "ajustes") b = Number(x.budget) || 0;
-        else if (x.kind === "gasto") remote.push({id:d.id, amount:Number(x.amount)||0, desc:String(x.desc||""), cat:String(x.cat||"otros"), date:String(x.date||todayISO())});
-      });
-      // first sync: move anything saved only on this device into the cloud
-      if (first){
-        first = false;
-        const ids = new Set(remote.map(r => r.id));
-        const pending = expenses.filter(e => !ids.has(e.id));
-        pending.forEach(e => col.doc(e.id).set({kind:"gasto", ...e}).catch(()=>{}));
-        if (!b && budget) col.doc("ajustes").set({kind:"ajustes", budget}).catch(()=>{});
-        if (pending.length || (!b && budget)) { try{ localStorage.removeItem(LS); }catch(e){} }
-      }
-      expenses = remote; budget = b;
-      store = {col};
-      $("status").textContent = "Guardado en tu cuenta, solo vos lo ves";
-      render();
-    }, () => { $("status").textContent = "Guardado en este dispositivo"; });
-  }catch(e){ /* keep local mode */ }
+// ---------- conexión a grupo compartido (Firestore) ----------
+function connectGroup(groupId){
+  if (!firebase.apps.length) return; // sin config pegada, queda modo local
+  setGroup(groupId);
+  const col = firebase.firestore().collection("grupos/" + groupId + "/items");
+  let first = true;
+  col.onSnapshot(snap => {
+    const remote = []; let b = 0;
+    snap.forEach(d => { const x = d.data(); if (!x) return;
+      if (x.kind === "ajustes") b = Number(x.budget) || 0;
+      else if (x.kind === "gasto") remote.push({id:d.id, amount:Number(x.amount)||0, desc:String(x.desc||""), cat:String(x.cat||"otros"), date:String(x.date||todayISO())});
+    });
+    if (first){
+      first = false;
+      const ids = new Set(remote.map(r => r.id));
+      const pending = expenses.filter(e => !ids.has(e.id));
+      pending.forEach(e => col.doc(e.id).set({kind:"gasto", ...e}).catch(()=>{}));
+      if (!b && budget) col.doc("ajustes").set({kind:"ajustes", budget}).catch(()=>{});
+      if (pending.length || (!b && budget)) { try{ localStorage.removeItem(LS); }catch(e){} }
+    }
+    expenses = remote; budget = b;
+    store = {col};
+    $("status").textContent = "Compartido — grupo " + groupId;
+    $("groupInfo").textContent = "Grupo: " + groupId;
+    render();
+  }, () => { $("status").textContent = "Sin conexión, viendo últimos datos"; });
+}
+
+$("shareBtn").onclick = () => {
+  if (!firebase.apps.length){
+    alert("Para compartir entre dispositivos primero tenés que configurar Firebase (ver comentario en el código, firebaseConfig).");
+    return;
+  }
+  const actual = getGroup();
+  const v = prompt(
+    actual ? `Tu código de grupo es:\n${actual}\n\nCompartilo con quien quieras que vea y anote gastos.\nPara UNIRTE a otro grupo, pegá su código acá:` : "Pegá un código de grupo para unirte, o dejá vacío para crear uno nuevo y compartirlo:",
+    actual || ""
+  );
+  if (v === null) return;
+  const code = v.trim() || newGroupId();
+  connectGroup(code);
+};
+
+(function initGroup(){
+  if (!firebase.apps.length) return;
+  const g = getGroup() || newGroupId();
+  connectGroup(g);
 })();
 </script>
 </body>
