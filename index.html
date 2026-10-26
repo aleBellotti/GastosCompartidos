@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis gastos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EEF2; --paper:#FFFFFF; --ink:#1B2740; --muted:#5E6B80; --line:#D3DAE3;
+  --accent:#E0A526; --accent-ink:#1B2740; --danger:#C2412D; --ok:#2F7D5B;
+  --c-comida:#E0A526; --c-transporte:#3C78C8; --c-casa:#7A5BC0; --c-ocio:#D0587E; --c-salud:#2F9C8A; --c-otros:#8A94A6;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121A2A; --paper:#1A2438; --ink:#E8EDF5; --muted:#9AA7BC; --line:#2C3850;
+    --accent:#F0B63A; --accent-ink:#121A2A; --danger:#E66A55; --ok:#5BBF91;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121A2A; --paper:#1A2438; --ink:#E8EDF5; --muted:#9AA7BC; --line:#2C3850;
+  --accent:#F0B63A; --accent-ink:#121A2A; --danger:#E66A55; --ok:#5BBF91;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 48px}
+h1,h2,.big{font-family:"Bricolage Grotesque","Figtree",system-ui,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+h1{font-size:1.15rem;font-weight:700;margin:0}
+.month{display:flex;align-items:center;gap:4px}
+.month span{min-width:120px;text-align:center;font-weight:600;text-transform:capitalize}
+.iconbtn{border:1px solid var(--line);background:var(--paper);color:var(--ink);width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.hero{padding:20px 0 8px}
+.hero .label{color:var(--muted);font-size:.95rem}
+.big{font-size:clamp(3rem,15vw,4.6rem);font-weight:800;line-height:1;letter-spacing:-.03em;margin:4px 0 14px;font-variant-numeric:tabular-nums}
+.tank{height:14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex}
+.tank i{display:block;height:100%;transition:width .4s ease}
+.budget-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:.95rem;color:var(--muted);gap:8px;flex-wrap:wrap}
+.budget-row b{color:var(--ink)}
+.budget-row .over{color:var(--danger)}
+.linkbtn{background:none;border:none;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font:inherit;cursor:pointer;padding:4px 0}
+
+.add{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:16px;margin:24px 0}
+.add h2{font-size:1.05rem;margin:0 0 12px;font-weight:700}
+.amount{display:flex;align-items:center;border-bottom:2px solid var(--ink);margin-bottom:12px}
+.amount span{font-family:"Bricolage Grotesque",sans-serif;font-size:2rem;font-weight:700;color:var(--muted)}
+.amount input{border:none;background:transparent;color:var(--ink);font-family:"Bricolage Grotesque",sans-serif;font-size:2rem;font-weight:700;width:100%;padding:4px 6px;outline:none}
+.field{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font:inherit;margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:.92rem;cursor:pointer;display:flex;align-items:center;gap:6px}
+.chip .dot{width:9px;height:9px;border-radius:50%}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.row{display:flex;gap:8px}
+.row .field{margin-bottom:0}
+.primary{background:var(--accent);color:var(--accent-ink);border:none;border-radius:10px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.err{color:var(--danger);font-size:.9rem;min-height:1.3em;margin-top:6px}
+
+.cats{margin:8px 0 28px}
+.cats h2,.list h2{font-size:1.05rem;margin:0 0 10px;font-weight:700}
+.cat{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin-bottom:10px}
+.cat .bar{grid-column:1 / -1;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.cat .bar i{display:block;height:100%}
+.cat .amt{font-variant-numeric:tabular-nums;font-weight:600}
+
+.day{color:var(--muted);font-size:.88rem;margin:16px 0 4px;text-transform:capitalize}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.item .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.item .desc{flex:1;min-width:0}
+.item .desc div:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .desc small{color:var(--muted)}
+.item .val{font-weight:600;font-variant-numeric:tabular-nums}
+.item .del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:4px 6px}
+.empty{color:var(--muted);padding:12px 0}
+.status{color:var(--muted);font-size:.82rem;text-align:center;margin-top:28px}
+@media (prefers-reduced-motion: reduce){.tank i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Mis gastos</h1>
+    <div class="month">
+      <button class="iconbtn" id="prev" aria-label="Mes anterior">‹</button>
+      <span id="monthLabel"></span>
+      <button class="iconbtn" id="next" aria-label="Mes siguiente">›</button>
+    </div>
+  </header>
+
+  <section class="hero" aria-live="polite">
+    <div class="label">Gastado este mes</div>
+    <div class="big" id="total">$0</div>
+    <div class="tank" id="tank" aria-hidden="true"></div>
+    <div class="budget-row">
+      <span id="budgetText"></span>
+      <button class="linkbtn" id="editBudget">Cambiar presupuesto</button>
+    </div>
+  </section>
+
+  <section class="add">
+    <h2>Anotar un gasto</h2>
+    <label class="amount"><span>$</span><input id="amt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" aria-label="Monto"></label>
+    <input class="field" id="desc" type="text" maxlength="60" placeholder="¿En qué? (ej. almuerzo, nafta)" aria-label="Descripción">
+    <div class="chips" id="chips" role="group" aria-label="Categoría"></div>
+    <div class="row">
+      <input class="field" id="date" type="date" aria-label="Fecha">
+      <button class="primary" id="save">Guardar gasto</button>
+    </div>
+    <div class="err" id="err" role="alert"></div>
+  </section>
+
+  <section class="cats">
+    <h2>Por categoría</h2>
+    <div id="cats"></div>
+  </section>
+
+  <section class="list">
+    <h2>Movimientos</h2>
+    <div id="list"></div>
+  </section>
+
+  <div class="status" id="status">Guardado en este dispositivo</div>
+</div>
+
+<script>
+const CATS = [
+  {id:"comida", name:"Comida", color:"var(--c-comida)"},
+  {id:"transporte", name:"Transporte", color:"var(--c-transporte)"},
+  {id:"casa", name:"Casa y servicios", color:"var(--c-casa)"},
+  {id:"ocio", name:"Ocio", color:"var(--c-ocio)"},
+  {id:"salud", name:"Salud", color:"var(--c-salud)"},
+  {id:"otros", name:"Otros", color:"var(--c-otros)"}
+];
+const catById = id => CATS.find(c => c.id === id) || CATS[5];
+const fmt = n => "$" + n.toLocaleString("es", {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2});
+const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+let expenses = [];          // {id, amount, desc, cat, date}
+let budget = 0;
+let selCat = "comida";
+let view = new Date(); view.setDate(1);
+let store = null;           // remote store helpers when db is available
+
+// ---------- local fallback ----------
+const LS = "gastos-app-v1";
+function loadLocal(){ try{ const d = JSON.parse(localStorage.getItem(LS) || "{}"); expenses = d.expenses || []; budget = d.budget || 0; }catch(e){} }
+function saveLocal(){ try{ localStorage.setItem(LS, JSON.stringify({expenses, budget})); }catch(e){} }
+
+// ---------- persistence API ----------
+async function addExpense(e){
+  if (store){ await store.col.doc(e.id).set({kind:"gasto", ...e}); }
+  else { expenses.push(e); saveLocal(); render(); }
+}
+async function removeExpense(id){
+  if (store){ await store.col.doc(id).delete(); }
+  else { expenses = expenses.filter(x => x.id !== id); saveLocal(); render(); }
+}
+async function setBudget(v){
+  if (store){ await store.col.doc("ajustes").set({kind:"ajustes", budget:v}); }
+  else { budget = v; saveLocal(); render(); }
+}
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+function renderChips(){
+  $("chips").innerHTML = "";
+  CATS.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button";
+    b.setAttribute("aria-pressed", c.id === selCat);
+    b.innerHTML = `<span class="dot" style="background:${c.color}"></span>`;
+    b.append(c.name);
+    b.onclick = () => { selCat = c.id; renderChips(); };
+    $("chips").append(b);
+  });
+}
+
+function render(){
+  const y = view.getFullYear(), m = view.getMonth();
+  $("monthLabel").textContent = view.toLocaleDateString("es", {month:"long", year:"numeric"});
+  const month = expenses.filter(e => { const [yy,mm] = e.date.split("-").map(Number); return yy === y && mm - 1 === m; });
+  const total = month.reduce((s,e) => s + e.amount, 0);
+  $("total").textContent = fmt(total);
+
+  // per category
+  const byCat = {};
+  month.forEach(e => byCat[e.cat] = (byCat[e.cat] || 0) + e.amount);
+  const sorted = CATS.filter(c => byCat[c.id]).sort((a,b) => byCat[b.id] - byCat[a.id]);
+
+  // tank: segments by category, scaled to budget (or total)
+  const cap = Math.max(budget, total) || 1;
+  $("tank").innerHTML = sorted.map(c => `<i style="width:${byCat[c.id]/cap*100}%;background:${c.color}"></i>`).join("");
+
+  if (budget > 0){
+    const left = budget - total;
+    $("budgetText").innerHTML = left >= 0
+      ? `Te quedan <b>${fmt(left)}</b> de ${fmt(budget)}`
+      : `<span class="over">Te pasaste por <b class="over">${fmt(-left)}</b></span> (presupuesto ${fmt(budget)})`;
+    $("editBudget").textContent = "Cambiar presupuesto";
+  } else {
+    $("budgetText").textContent = "Sin presupuesto mensual";
+    $("editBudget").textContent = "Definir presupuesto";
+  }
+
+  $("cats").innerHTML = sorted.length ? "" : `<div class="empty">Cuando anotes gastos, vas a ver acá en qué se va la plata.</div>`;
+  sorted.forEach(c => {
+    const pct = total ? Math.round(byCat[c.id]/total*100) : 0;
+    const d = document.createElement("div"); d.className = "cat";
+    d.innerHTML = `<span></span><span class="amt"></span><div class="bar"><i style="width:${pct}%;background:${c.color}"></i></div>`;
+    d.children[0].textContent = `${c.name} · ${pct}%`;
+    d.children[1].textContent = fmt(byCat[c.id]);
+    $("cats").append(d);
+  });
+
+  // list grouped by day
+  const list = $("list"); list.innerHTML = "";
+  if (!month.length){ list.innerHTML = `<div class="empty">Todavía no hay gastos en este mes. Anotá el primero arriba.</div>`; return; }
+  const days = {};
+  month.slice().sort((a,b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).forEach(e => (days[e.date] ||= []).push(e));
+  Object.keys(days).forEach(day => {
+    const [yy,mm,dd] = day.split("-").map(Number);
+    const h = document.createElement("div"); h.className = "day";
+    const dayTotal = days[day].reduce((s,e)=>s+e.amount,0);
+    h.textContent = new Date(yy,mm-1,dd).toLocaleDateString("es",{weekday:"long", day:"numeric", month:"short"}) + " — " + fmt(dayTotal);
+    list.append(h);
+    days[day].forEach(e => {
+      const c = catById(e.cat);
+      const r = document.createElement("div"); r.className = "item";
+      r.innerHTML = `<span class="dot" style="background:${c.color}"></span><div class="desc"><div></div><small></small></div><span class="val"></span><button class="del" aria-label="Borrar gasto">✕</button>`;
+      r.querySelector(".desc div").textContent = e.desc || c.name;
+      r.querySelector("small").textContent = c.name;
+      r.querySelector(".val").textContent = fmt(e.amount);
+      r.querySelector(".del").onclick = () => { if (confirm("¿Borrar este gasto?")) removeExpense(e.id).catch(showErr); };
+      list.append(r);
+    });
+  });
+}
+
+function showErr(e){ $("err").textContent = "No se pudo guardar. Revisá tu conexión e intentá de nuevo."; console.error(e); }
+
+$("save").onclick = async () => {
+  const amount = parseFloat($("amt").value);
+  $("err").textContent = "";
+  if (!(amount > 0)){ $("err").textContent = "Escribí un monto mayor a cero."; $("amt").focus(); return; }
+  const e = {id: uid(), amount: Math.round(amount*100)/100, desc: $("desc").value.trim(), cat: selCat, date: $("date").value || todayISO()};
+  try{
+    await addExpense(e);
+    $("amt").value = ""; $("desc").value = "";
+    const [yy,mm] = e.date.split("-").map(Number);
+    view = new Date(yy, mm-1, 1); render();
+    $("amt").focus();
+  }catch(err){ showErr(err); }
+};
+$("amt").addEventListener("keydown", ev => { if (ev.key === "Enter") $("save").click(); });
+$("desc").addEventListener("keydown", ev => { if (ev.key === "Enter") $("save").click(); });
+$("editBudget").onclick = () => {
+  const v = prompt("Presupuesto mensual (0 para quitarlo):", budget || "");
+  if (v === null) return;
+  const n = parseFloat(String(v).replace(",", "."));
+  if (isNaN(n) || n < 0){ alert("Escribí un número válido."); return; }
+  setBudget(Math.round(n*100)/100).catch(showErr);
+};
+$("prev").onclick = () => { view.setMonth(view.getMonth()-1); render(); };
+$("next").onclick = () => { view.setMonth(view.getMonth()+1); render(); };
+
+$("date").value = todayISO();
+loadLocal();
+renderChips();
+render();
+
+// ---------- light up private cloud storage when available ----------
+(async () => {
+  if (!window.claude || !window.claude.use) return;
+  try{
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if (!db || !user) return;
+    const id = await user.id();
+    if (!id) return;
+    const col = db.collection("data/users/" + id);
+    let first = true;
+    col.onSnapshot(snap => {
+      const remote = []; let b = 0;
+      snap.docs.forEach(d => { const x = d.data(); if (!x) return;
+        if (x.kind === "ajustes") b = Number(x.budget) || 0;
+        else if (x.kind === "gasto") remote.push({id:d.id, amount:Number(x.amount)||0, desc:String(x.desc||""), cat:String(x.cat||"otros"), date:String(x.date||todayISO())});
+      });
+      // first sync: move anything saved only on this device into the cloud
+      if (first){
+        first = false;
+        const ids = new Set(remote.map(r => r.id));
+        const pending = expenses.filter(e => !ids.has(e.id));
+        pending.forEach(e => col.doc(e.id).set({kind:"gasto", ...e}).catch(()=>{}));
+        if (!b && budget) col.doc("ajustes").set({kind:"ajustes", budget}).catch(()=>{});
+        if (pending.length || (!b && budget)) { try{ localStorage.removeItem(LS); }catch(e){} }
+      }
+      expenses = remote; budget = b;
+      store = {col};
+      $("status").textContent = "Guardado en tu cuenta, solo vos lo ves";
+      render();
+    }, () => { $("status").textContent = "Guardado en este dispositivo"; });
+  }catch(e){ /* keep local mode */ }
+})();
+</script>
+</body>
+</html>
